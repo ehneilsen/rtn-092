@@ -1,0 +1,77 @@
+\documentclass[OPS,lsstdraft,authoryear,toc]{lsstdoc}
+\input{meta}
+
+% Package imports go here.
+
+% Local commands go here.
+
+%If you want glossaries
+%\input{aglossary.tex}
+%\makeglossaries
+
+\title{schedview: Tools for Visualizing Survey Progress and Scheduler Performance}
+
+% This can write metadata into the PDF.
+% Update keywords and author information as necessary.
+\hypersetup{
+    pdftitle={schedview: Tools for Visualizing Survey Progress and Scheduler Performance},
+    pdfauthor={Eric Neilsen},
+    pdfkeywords={}
+}
+
+% Optional subtitle
+% \setDocSubtitle{A subtitle}
+
+\author{%
+Eric Neilsen
+}
+
+\setDocRef{RTN-092}
+\setDocUpstreamLocation{\url{https://github.com/lsst/rtn-092}}
+
+\date{\vcsDate}
+
+% Optional: name of the document's curator
+% \setDocCurator{The Curator of this Document}
+
+\setDocAbstract{%
+Over the course of ten years of observing, the NSF-DOE Vera C. Rubin Observatory, funded by the U.S. National Science Foundation and the U.S. Department of Energy's Office of Science, will complete the Legacy Survey of Space and Time (LSST), collecting approximately 2 million images over the 18000 square degree footprint in the southern sky. An automated scheduler, rubin_scheduler, will schedule the exposures that comprise this survey.  schedview is a python module with tools for collecting, processing, and visualizing survey progress and scheduler performance metadata. These components can be combined into online dashboards (or other user interfaces), used within jupyter notebooks, or with automatically generated parameterized notebooks using tools such as Times Square. The current version includes the pre-night briefing, a report that summarizes a simulation of a night of observing before it takes place to catch problems and prepare staff for the night ahead; the scheduler snapshot dashboard, a web application for examining the state of the scheduler at different times during observing; and the scheduler-focused night summary, which summarizes a completed night. Examples of figures supported for these dashboards and reports include interactive sky maps of visits, basis function evaluations used by the scheduler, timelines of visits and logging events, plots of visit metadata, and others.
+}
+
+% Change history defined here.
+% Order: oldest first.
+% Fields: VERSION, DATE, DESCRIPTION, OWNER NAME.
+% See LPM-51 for version number policy.
+\setDocChangeRecord{%
+  \addtohist{1}{YYYY-MM-DD}{Unreleased.}{Eric Neilsen}
+}
+
+
+\begin{document}
+
+% Create the title page.
+\maketitle
+% Frequently for a technote we do not want a title page  uncomment this to remove the title page and changelog.
+% use \mkshorttitle to remove the extra pages
+
+% ADD CONTENT HERE
+% You can also use the \input command to include several content files.
+
+\appendix
+% Include all the relevant bib files.
+% https://lsst-texmf.lsst.io/lsstdoc.html#bibliographies
+\section{References} \label{sec:bib}
+\renewcommand{\refname}{} % Suppress default Bibliography section
+\bibliography{local,lsst,lsst-dm,refs_ads,refs,books}
+
+% Make sure lsst-texmf/bin/generateAcronyms.py is in your path
+\section{Acronyms} \label{sec:acronyms}
+\input{acronyms.tex}
+% If you want glossary uncomment below -- comment out the two lines above
+%\printglossaries
+
+
+
+
+
+\end{document}
