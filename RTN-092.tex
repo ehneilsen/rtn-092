@@ -1,7 +1,11 @@
 \documentclass[OPS,lsstdraft,authoryear,toc]{lsstdoc}
+\usepackage[nomarkers,nolists,figuresonly]{endfloat}
+\usepackage{adjustbox}
+\usepackage{gensymb}
 \input{meta}
 
 % Package imports go here.
+
 
 % Local commands go here.
 \newcommand\schedview{\texttt{schedview }}
@@ -56,15 +60,24 @@
 
 \section{Introduction} \label{sec:intro}
 
-Over the course of ten years of observing, the NSF-DOE Vera C. Rubin Observatory, funded by the U.S. National Science Foundation and the U.S. Department of Energy's Office of Science, will complete the Legacy Survey of Space and Time (LSST), collecting approximately 2 million images over the 18000 square degree footprint in the southern sky. Each image will be constructed from a single visit, where a visit is a set of one or more consecutive exposures on the sky with the same pointing and filter. An automated scheduler, \texttt{rubin\_scheduler}, will select which visit will be taken at any given time. A wide range of factors influence which visit should be selected for observing at any given time. These factors include physical possibility (e.g., is the pointing on the sky beneath the horizon?); conditions affecting data quality (e.g., exposures using the u, g, or r filter will be more adversely affected by bright moonlight than those in i, z, or y); efficiency (spending a lot of time slewing means fewer exposures and less data in the survey); and suitability for the wide variety of science the survey will support (e.g., uniformity in depth over the footprint and observing cadence). This complexity makes it challenging to understand and assess the scheduler's behavior at any given time.
+ The NSF-DOE Vera C. Rubin Observatory, funded by the U.S. National Science Foundation and the U.S. Department of Energy's Office of Science, has been constructed to complete the Legacy Survey of Space and Time (LSST). Over the course of ten years of observing, the observatory will collect approximately 2 million images over the 18000 square degree footprint in the southern sky. Each image consists of a single visit, where a visit is a set of one or more consecutive exposures on the sky with the same pointing and filter. An automated scheduler, \texttt{rubin\_scheduler}, will select which visit will be taken at any given time. A wide range of factors influence which visit should be selected for observing at any given time. These factors include physical possibility (e.g., is the pointing on the sky beneath the horizon?); conditions affecting data quality (e.g., exposures using the u, g, or r filter will be more adversely affected by bright moonlight than those in i, z, or y); efficiency (spending a lot of time slewing means fewer exposures and less data in the survey); and suitability for the wide variety of science the survey will support (e.g., uniformity in depth over the footprint and observing cadence). This complexity makes it challenging to understand and assess the scheduler's behavior at any given time.
 
-A variety of people working on Rubin Observatory and the LSST require tools to help them monitor and explore scheduler behavior and survey progress, in a variety of contexts: both the scheduling team and observatory staff preparing for a night of observing need to assess the readiness of the scheduler and develop expectations for nominal behavior during the night; observatory staff will also need to explore the scheduler state during the night to monitor it for problems and understand its behavior, and sometime diagnose problems; and the observatory staff and the scheduling team will need to assess scheduler performance on completed night of observing. Both the scheduling team and management will need to assess and report on survey progress over longer time scales, and produce reports for a variety of audiences. Tools for examination of scheduler behavior and survey progress therefore need to support users with a variety of levels of expertise on the scheduler, from novice to expert. The tools need to be suitable for analysis on a variety of time-scales, and will need to be run using data accessible from different sites with clients run at different sites.
+Many people working on Rubin Observatory and the LSST require tools to help them monitor and explore scheduler behavior and survey progress, in a variety of contexts:
+\begin{itemize}
+    \item Before the night, the scheduling team and observing staff responsible for overseeing scheduler operations will need visualizations of a simulation of the upcoming night in order to check for potential problems so they can be caught and corrected before the occur. Observing staff will also need an understanding of the expected behavior of the scheduler sufficient to identify unexpected or potentially problematic behavior during the night.
+    \item During the night, observing staff and (if there are problems) support and development staff will need tools for exploring the detailed state of the scheduler so that its activity can be understood and debugged.
+    \item During the night, the observing staff may want to update the predictions of scheduler behavior over the short term, from a few hours to the remainder of the night. This will help them understand the impact of unexpected events not accounted for by the pre-night briefing (e.g., engineering tests, down time due to weather, and instrument problems).
+    \item After each night, both observatory staff and the scheduling team will need to understand what was observed and assess scheduler performance for the night.
+    \item Observatory staff, the scheduling team, and project management will need to periodically assess and report survey progress to science stakeholders, both within and outside the project. Tools and visualizations for assessment and communication of progress will need to be available for a variety of users and audiences.
+    \item Rubin Observatory Science Collaborations will need to monitor progress to plan scientific analysis and provide feedback to the Rubin Observatory Survey Cadence Optimization Committee (SCOC) so it can be fed back into plans for updating Rubin Observory scheduling.
+\end{itemize}
+Tools for examination of scheduler behavior and survey progress therefore need to support users with a variety of levels of expertise on the scheduler, from novice to expert. The tools need to be suitable for analysis on a variety of time-scales, and will need to be run using data accessible from different sites with clients run at different sites.
 
-\schedview is a python package of tools for examining, assessing, and monitoring the scheduler and its behavior, designed to be flexible enough to meet these requirements. The architecture divides the functionality into different elements that can be mixed and matched to be suitable for different audiences, environments, and uses, such that different reports for different audiences and uses can be made using a common set of code.
+\schedview is a python package of tools for examining, assessing, and monitoring the scheduler and its behavior. To be flexible enough to meet these requirement, \schedview`s architecture divides the functionality into different architectural elements that can be mixed and matched to be suitable for different audiences, environments, and uses, such that different reports for different audiences and uses can be made using a common set of code.
 
 \section{The Rubin Observatory scheduler} \label{sec:scheduler}
 
-The ``feature-based scheduler'' (FBS), implemented in the \texttt{rubin\_scheduler} python package, implements the algorithm that selects visits for science operations. The \texttt{CoreScheduler} class implements the interface over which visits are queried. An instance of the \texttt{CoreScheduler} has a collection of ``surveys'' organized into ``tiers'' reflecting the priority these surveys have. Figure~\ref{fig:schedclass} shows instance diagram of an example instance of a \texttt{CoreScheduler}. The example is much simpler than realistic examples, but is complex enough to show the fundamental features of the architure.
+The ``feature-based scheduler'' (FBS), implemented in the \texttt{rubin\_scheduler} python package, implements the algorithm that selects visits for science operations. The \texttt{CoreScheduler} class provides the primary API for interactions with the summit observatory software, including methods to request potential target observations and record acquired visits. An instance of the \texttt{CoreScheduler} has a collection of ``surveys'' organized into ``tiers'' reflecting the priority these surveys have. Figure~\ref{fig:schedclass} shows instance diagram of an example instance of a \texttt{CoreScheduler}. The example is much simpler than realistic examples, but is complex enough to show the fundamental features of the architure.
 
 
 \begin{figure}
@@ -84,13 +97,13 @@ The ``feature-based scheduler'' (FBS), implemented in the \texttt{rubin\_schedul
 \end{figure}
 
 Figure~\ref{fig:schedprocess} shows the process by which the scheduler selects visits.
-For any set of conditions, each ``survey'' has an associated reward. A reward may either be a scalar or a map of values over the sky (as a healpix map).
-When the reward (if it is a scalar) or the maximum value of the reward (if it is a map) is a number greater than \texttt{-Infinity}, that survey can also supply an observation or list of observations to be scheduled.
-When the reward (or maximum value of the reward) for the survey is \texttt{-Infinity}, this means that all observations supplied by the survey are infeasible under the provided conditions.
+For any set of conditions (time of observing, weather conditions, etc.), each ``survey'' calculates an associated reward. A reward may either be a scalar or a map of values over the sky (as a healpix map).
+When the reward (if it is a scalar) or the maximum value of the reward (if it is a map) is a number greater than \texttt{-Infinity}, that survey can also supply an observation or list of observations to be scheduled: it is ``feasible.''
+When the reward (or maximum value of the reward) for the survey is \texttt{-Infinity}, this means that the survey cannot supply any executable observations: the survey is ``infeasible'' under the provided conditions.
 
-When the \texttt{CoreScheduler} is asked to schedule an observation for a given set of conditions, it works through each tier in order until it finds a tier with at least one survey that can supply an observation. Among all of the surveys in this tier, it selects the one which returns the highest value for the reward, and returns the observation selected by that survey. Figure~\ref{fig:schedprocess} provides a visual demonstration of the steps in this process.
+When the \texttt{CoreScheduler} is asked to schedule an observation for a given set of conditions, it works through each tier in order until it finds a tier with at least one feasible survey (one that can supply an observation). Among all of the surveys in this tier, it selects the one with the highest calculated reward, and returns the observation selected by that survey. Figure~\ref{fig:schedprocess} provides a visual demonstration of the steps in this process.
 
-Most surveys compute rewards using a weighted sum of basis functions. A basis function is a function of the conditions (time, weather, etc.) computed for, and by, a survey. Basis functions can either return scalar values or maps of the sky (as healpix arrays).
+Most surveys compute rewards using a weighted sum of basis functions. A basis function is a function of the conditions (time, weather, etc.) computed for and by a survey. Basis functions can return either scalar values or maps of the sky (as healpix arrays).
 
 \begin{figure}
     \centering
@@ -99,7 +112,7 @@ Most surveys compute rewards using a weighted sum of basis functions. A basis fu
     \label{fig:schedinst}
 \end{figure}
 
-Figure~\ref{fig:schedinst} expands on the previous diagram, displaying the set of instances of basis functions belonging to each survey. They will often be similar from one survey to another (instances of the same classes), but they can have different configurations. For example, different surveys might select observations in different filters, in which case the instance of \texttt{M5DiffBasisFunction} for one survey will be different from the instance of \texttt{M5DiffBasisFunction} for another. In other cases, they might be exact copies.
+Figure~\ref{fig:schedinst} expands on the Figure~\ref{fig:schedclass}, displaying the set of instances of basis functions belonging to each survey. They will often be similar from one survey to another (instances of the same classes), but they can have different configurations. For example, different surveys might select observations in different filters, in which case the instance of \texttt{M5DiffBasisFunction} for one survey will be different from the instance of \texttt{M5DiffBasisFunction} for another. In other cases, they might be exact copies.
 
 \begin{figure}
     \centering
@@ -136,7 +149,7 @@ When all basis functions for a survey return scalars, the reward returned by the
 \textrm{reward} = \sum_{i=0}^{n} \textrm{weight}_{i} \times \textrm{basis\_function}_{i}(\textrm{conditions)}
 \end{equation}
 
-If \texttt{reward = -Infinity} for a given conditions, the survey cannot supply observations to be scheduled under those conditions. Note that this will happen any time any of the basis function values is \texttt{-Infinity}.
+If \texttt{reward = -Infinity} for a given set of conditions, the survey cannot supply observations to be scheduled under those conditions. Note that this will happen any time any of the basis function values is \texttt{-Infinity}.
 
 When at least some basis functions return healpix arrays (representing maps of the sky), the reward is also a healpix array. The value for each healpixel (identified by an id, hpid) is an independent weighted sum of corresponding healpixel values in the basis functions (and the scalar values, for any scalar basis functions):
 
@@ -161,6 +174,684 @@ If any of a survey's basis functions are infeasible, the survey as a whole will 
     \caption{Demonstration of a collection of feasible basis functions that lead to an infeasible survey}
     \label{fig:bfinfeas}
 \end{figure}
+                     
+\section{\schedview workflow and architecture} \label{sec:workflow}
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=1\linewidth]{schedview_dfd.png}
+    \caption{\schedview workflow data-flow diagram}
+    \label{fig:schedviewdfd}
+}
+    A data-flow diagram showing the workflow \texttt{schedview} uses to create visualizations and the reports that contain them. Cylinders represent databases, boxes represent other artifacts such as files or instances of python objects, and ovals represent processes.
+\end{figure}
+
+
+To generate reports and other tools to help users monitor scheduler performance and survey progress, \texttt{schedview} implements a workflow typical of data science applications. The workflow has four stages (shown in figure~\ref{fig:schedviewdfd}): collection, computation, plotting, and report compilation.
+\begin{itemize}
+    \item {\em Collection} retrieves data from external systems such as files, databases, and S3 buckets, and returns them as python objects. By isolating code required for data access, it can be replaced or reconfigured to support data access from different sites, and code need not be duplicated between the original and the replacements: any code common to applications with different access requirements will be packaged outside the collection step.\footnote{Isolation of code in the collection phase also allows the implementation of functions that retrieve data from different sources with different APIs, but present data access to the \texttt{schedview} developer with a common API such that different data sources become interchangeable.}
+    \item {\em Computation} performs any necessary computations. The computation phase typically uses the output of collection phase as input, but not always: computations from models (e.g., sun and moon ephemeris) are also included in the computation phase. {\em The computation step should include \textit{all} code that is independent of either data retrieval or visual representation, and \textit{only} code that is independent of data retrieval or visual representation.} This allows for the replacement of collection and plotting code without requiring duplication of code in the replacement.
+    \item {\em Plotting} transforms python objects created in the collection and computation phases into python objects designed for display. Examples include \texttt{html} fragments, instances of \texttt{bokeh.model.Plot} and its subclasses, instances of \texttt{matplotlib.figure.Figure}, and potentially instances of corresponding classes from other visualization modules.
+    \item {\em Reporting} accepts user-specified parameters for the plot (e.g. the night to be visualized on the telescope scheduler to be examined), calls the necessary functions to perform the collection, plotting, and computation steps, arranges the results, and presents them to the user. Examples include command-line utilities that write report files to disk, \texttt{Times Square} notebooks, simple web interfaces with individual plots, or full featured complex dashboards.
+\end{itemize}
+
+\texttt{schedview} uses instances of python objects as the interface between functions that implement operations in the first three phases. The architecture and workflow do not restrict the classes of these objects, but they are typically instances of fairly generic classes (e.g., \texttt{pandas.DataFrame}) and map closely to any external data sources or computation modules that might be used. It groups functions for each of these four stages into submodules: the \texttt{schedview.collect}, \texttt{schedview.compute}, and \texttt{schedview.plot} submodules provide functions to perform the collection, computation, and plotting phases, respectively (see Figure~\ref{fig:schedviewpackages}). The \texttt{schedview.app} submodule provides \texttt{panel}-based web app implementations of the reporting phase, while the separate \texttt{schedview\_notebooks} repository provides Times Square notebook implementations. Dashboards and other infrastructure outside of \texttt{schedview} can also use isolated elements in \texttt{schedview} to provide figures they might need, in combination with tools and figures from other sources.
+
+\begin{figure}
+{
+
+    \centering
+    \includegraphics[width=0.8\linewidth]{schedviewpackages.png}
+    \caption{\schedview abridged UML package diagram}
+    \label{fig:schedviewpackages}
+}
+A UML package diagram shows the submodules of \schedview that contain the implementation of the four stages in the workflow, with a few representative files within each package.
+
+\end{figure}
+
+A simple example of a report that shows overhead between visits demonstrates the basic workflow of making a report. \texttt{gaps.py}, shown in figure~\ref{fig:gapscode}, implements the reporting element in the architecture:
+\begin{itemize}
+    \item In the {\em collect} stage, \texttt{make\_gaps} calls \texttt{schedview.collect.visits.read\_visits} to
+    get visits from the requested data source, receiving them as a \texttt{pandas.DataFrame}.
+    \item in the {\em compute} stage, \texttt{make\_gaps} calls \texttt{schedview.compute.astro.night\_events} to
+    determine the start and end times for the night, then \texttt{schedview.compute.visits.compute\_overhead\_summary}
+    to create a dictionary of statistics on the start of the night, the visits, between the visits, and the last last visit and the end of the night.
+    \item In the {\em plot} stage, \texttt{make\_gaps} calls \texttt{schedview.plot.create\_overhead\_summary\_table} to create an HTML fragment showing the contents of the dictionary created in the compute phase.
+\end{itemize}
+Finally, \texttt{make\_gaps.py} creates the report proper by embedding the HTML fragment in a full HTML file.
+
+For more realistic reports, this overall sequence is repeated for each element to be included in the plot (usually re-using the same data for multiple visualizations), and combines the multiple visualizations into a unified report.
+
+\begin{figure}
+
+\begin{lstlisting}[language=python]
+import argparse
+import datetime
+
+import astropy.utils.iers
+import pandas as pd
+
+import schedview.collect.visits
+import schedview.compute.visits
+import schedview.plot
+from schedview.dayobs import DayObs
+
+
+def make_gaps(
+    iso_date: str | datetime.date,
+    visit_source: str,
+    report: None | str = None,
+) -> str:
+    """Make a figure showing the gaps between visits.
+
+    Parameters
+    ----------
+    iso_date : `str` or `datetime.date`
+        Local calendar date of the evening on which the night starts,
+        in YYYY-MM-DD (ISO 8601) format.
+    visit_source : `str`
+        Instrument or baseline version number
+    report : `None` | `str`, optional
+        Report file name, by default ``None`` (to not write to a file).
+
+    Returns
+    -------
+    result: `str`
+        An html fragment with a definition list of the gaps between visits.
+    """
+\end{lstlisting}
+\label{fig:gapscode}
+\caption{Sample command-line \schedview application}
+A sample command-line application showing the construction of a 
+report (in this case a simple html file) following the \texttt{schedview} workflow. (start)
+\end{figure}
+
+\begin{figure}[htbp]
+\ContinuedFloat                     % ← keeps the same figure number
+\begin{lstlisting}[language=python]
+    # Parameters
+    day_obs: DayObs = DayObs.from_date(iso_date)
+
+    # Collect
+    visits: pd.DataFrame = schedview.collect.visits.read_visits(
+        day_obs, visit_source, stackers=schedview.collect.visits.NIGHT_STACKERS
+    )
+
+    # Compute
+    night_events: pd.DataFrame = schedview.compute.astro.night_events(day_obs.date)
+    overhead_summary: dict = schedview.compute.visits.compute_overhead_summary(
+        visits,
+        night_events.loc["sun_n12_setting", "MJD"],
+        night_events.loc["sun_n12_rising", "MJD"]
+    )
+    """A dictionary summarizing the overheads of the visits."""
+
+    # Plot
+    result: str = schedview.plot.create_overhead_summary_table(overhead_summary)
+    """An HTML definition list summarizing the overheads of the visits."""
+
+    # Report
+    if report is not None:
+        with open(report, "w") as report_io:
+            print(f"<html><body>{result}</body></html>", file=report_io)
+
+    return result
+
+\end{lstlisting}
+(continued)
+\end{figure}
+
+
+
+Simple command line tools such as that used in the above example are currently only used for documentation, testing, and debugging. Applications currently implemented in \texttt{schedview} use one of several tools to build the reports:
+\begin{itemize}
+    \item Times Square parameterized Jupyter notebooks provide a straightforward, easy to develop way to turn development and experimental notebooks into automatically generated reports that can be used by the collaboration. When a user loads the Times Square URL for the report in a browser, Times Square uses the jupyter environment on the Rubin Observatory USDF RSP to execute the notebook, and the result is shown to the user. If the same notebook has previously been executed on Times Square with the same parameters, the result of the previous execution loaded from a cache and displayed instead. Times Square notebooks are flexible but limited, because the processes that generate the reports dynamically only support notebooks that can be computed in short periods of time.
+    \item The \texttt{nbconvert} utility can also transform Jupyter notebooks into web pages. An automated process executes \texttt{nbconvert} on Jupyter notebooks that provide pre-night briefing reports and nigth summaries, and posts the results as static web pages on an \texttt{ngnix} web server. Because dynamic elements in many of \texttt{schedview}`s figures are implemented in \texttt{javascript} in the client browser, many of the dynamic elements can be supported by this method even though there is no "back end" to serve new results or create new plots. However, not all possible functionality can be supported in this way.
+    \item Web application frameworks can be used to drive the necessary calls to \texttt{schedview} functions and create a full, interactive dashboard web applications. For example, the \texttt{schedlure_dashboard} tool is \texttt{phalanx} application implemented by combining calls to \texttt{schedview} tools using the \texttt{panel} dashboard library.
+\end{itemize}
+
+The separation of the visualization generation from report compilation in \texttt{schedview}'s architecture should make it straightforward to include its visualizations in reports generated by other python tools as well.
+
+\section{The pre-night briefing report} \label{sec:prenight}
+
+The pre-night briefing is a report that shows the expected behavior of a scheduler for a night based on one or more simulations of the night. It is intended to be reviewed by observatory staff and the scheduler team to identify potential problems with the scheduler before night begins, and to provide a baseline so that anomalous scheduler behavior can be identified. The process of generating a pre-night briefing has several stages.
+\begin{itemize}
+    \item Each morning, a \texttt{cron} job running at the Rubin Observatory U. S. Data Facility (USDF) executes a set of simulations for the following two nights using several sets of weather conditions and configurations checked out of relevant \texttt{git} repositories. The script that executes these simulations (part of \texttt{rubin\_sim}) saves the metadata and results of these simulations to an archive of such simulations saved in an S3 bucket.
+    \item A second \texttt{cron} job runs \texttt{nbconvert} on a pre-night Jupyter notebook to generate a state web page with the report, posts it where it is served using an \texttt{ngnix} web server, and updates an index of reports.
+    \item The user follows the link for the desired simulation, generating a Times Square report on the requested simulation.
+\end{itemize}
+
+The pre-night briefing includes the following figures:
+\begin{itemize}
+    \item A table of astronomical almanac events (sun and moon rise and set) for the subject night. Figure~\ref{fig:nightevents} shows sample output. As a minimal example, \texttt{schedview/examples/nightevents.py} implements a shell command to write a text file with this figure only.
+    \item A table with statistics on shutter time. Figure~\ref{fig:gaps} shows sample output, and \texttt{schedview/examples/gaps.py} implements a shell command to write a text file with this figure only.
+    \item Interactive sky maps show the locations of the night's visits on the sky. Figure~\ref{fig:visitmap} shows a screenshot of these interactive maps, and \texttt{schedview/examples/visitmap.py} implements a shell command to write an HTML report with this interactive figure only.
+    \item A plot showing the altitude of visits on the sky as a function of time.
+    Figure~\ref{fig:altplot} shows an example of such a plot, and \texttt{schedview/examples/altplot.py} implements a shell command to write an HTML report with this figure only.
+    \item A plot showing the night's visit pointings in polar horizon coordinates (alt/az). Figure~\ref{fig:horizonplot} shows an example of such a plot, and \texttt{schedview/examples/horizonplot.py} implements a shell command to write an HTML report with this figure only.
+    \item A timeline plot that allows the user to select from a variety of visit parameters such as coordinates, seeing, and depth, and plot them against time.
+    Figure~\ref{fig:valuetimelineplot} shows an example of such a plot.
+    \item A figure with timelines for each scheduler, representing the reward returned at the represented time as a color and bar height if it was feasible at the time for which it was called, or a red ``x'' if it was not. Figure~\ref{fig:surveyrewards} shows an example of such a plot, and \texttt{schedview/examples/surveyrewards.py} implements a shell command to write an HTML report with this figure only.
+    \item A figure with timelines for each basis function, group in tabs by tier. Each timeline represents the reward returned by each basis function (or max reward if the reward is a healpix map) in each basis function as a color and bar height if it was feasible at the time for which it was called, or a red ``x'' if it was not. Figure~\ref{fig:bfrewards} shows an example of such a plot, and \texttt{schedview/examples/bfrewards.py} implements a shell command to write an HTML report with this figure only.
+    \item An interactive table of visits lists the visits in the simulation as a text table, including parameters in a user-selectable subset of columns produced by the simulation.
+\end{itemize}
+Collectively, the timelines let a user diagnose what basis functions led any given survey to be considered infeasible.
+
+\begin{figure}
+{ 
+\centering
+\caption{Ephemeris events on a night.}
+\label{fig:nightevents}
+\begin{lstlisting}[basicstyle=\tiny\ttfamily]
+                          MJD         LST                              UTC                Chile/Continental
+event                                                                                                      
+sunset           61024.983794    8.292353 2025-12-15 23:36:39.814000+00:00 2025-12-15 20:36:39.814000-03:00
+sun_n12_setting  61025.029190   24.679780 2025-12-16 00:42:02.058000+00:00 2025-12-15 21:42:02.058000-03:00
+sun_n18_setting  61025.054112   33.676049 2025-12-16 01:17:55.267000+00:00 2025-12-15 22:17:55.267000-03:00
+sun_n18_rising   61025.332740  134.256861 2025-12-16 07:59:08.750000+00:00 2025-12-16 04:59:08.750000-03:00
+sun_n12_rising   61025.357662  143.253420 2025-12-16 08:35:02.029000+00:00 2025-12-16 05:35:02.029000-03:00
+sunrise          61025.403065  159.643265 2025-12-16 09:40:24.851000+00:00 2025-12-16 06:40:24.851000-03:00
+moonrise         61025.288776  118.386452 2025-12-16 06:55:50.252000+00:00 2025-12-16 03:55:50.252000-03:00
+moonset          61025.872661  329.160426 2025-12-16 20:56:37.883000+00:00 2025-12-16 17:56:37.883000-03:00
+night_middle     61025.193430   83.967809 2025-12-16 04:38:32.333000+00:00 2025-12-16 01:38:32.333000-03:00
+\end{lstlisting}
+}
+
+\texttt{sun\_n12\_setting} and \texttt{sun\_n18\_setting} indicate the end of evening nautical and astronomical twilight, respectively, and \texttt{sun\_n18\_rising} and \texttt{sun\_n12\_rising} mark the ends of the corresponding morning twilights. Different columns represent the times in a variety of formats, which are most useful in different uses: Modified Julian Date provides an easy decimal representation of the date and time, useful for calculating time differences; Local Sidereal Time (LST) in degrees indicate what portions of the sky are observable at what airmass; and UTC and a user-specified local specified time-zone provide the user with an understanding of when things happen in a more personal context, for example relative to when dinner is scheduled.
+\end{figure}
+
+\begin{figure}
+\caption{Time-use summary.}
+\label{fig:gaps}
+\begin{verbatim}
+   Open shutter of first exposure
+          1.32 minutes before 12 degree evening twilight
+
+   Close shutter time of last exposure
+          -1.70 minutes before 12 degree morning twilight
+
+   Total wall clock time
+          11.22 hours
+
+   Number of exposures
+          104
+
+   Total open shutter time
+          9.41 hours
+
+   Mean gap time
+          63.37 seconds
+
+   Median gap time
+          65.94 seconds
+\end{verbatim}
+
+A summary of time use during a night, showing the start and stop time relative to 12\degree~ twilight; the total wall clock time used for observing; the number of exposures and total "open shutter" time; and the average overhead (gaps) between exposures.
+\end{figure}
+
+\begin{figure}
+{
+\centering
+    \includegraphics[width=1.0\linewidth]{visitmap.png}
+    \caption{The visit map}
+    \label{fig:visitmap}
+}
+The visit map figure shows the visits collected during the night in two
+different representations, modeled after physical observing tools.
+
+\begin{itemize}
+\item
+  The ``Armillary sphere'' shows the sphere in orthographic projection,
+  with the center point of the projection controlled by the ``center
+  alt'' and ``center az'' sliders beneath the plot. A static
+  orthogrophic projection is not an equal-area projection, but playing
+  with the sliders is a particularly helpful way to inform a human's spatial
+  reasoning in three dimensions.
+\item
+  The ``Planisphere'' shows the sky in
+  \href{https://en.wikipedia.org/wiki/Lambert_azimuthal_equal-area_projection}{Lambert
+  Azimuthal Equal Area Projection}, centered at the south celestial
+  pole, with R.A. increasing counterclockwise. The projection used is
+  equal area, but highly distorted near the north celestial pole
+  (outside the LSST footprint). This is a particularly helpful
+  representation for planning observing, because changes to relevant features with time are simple rotations, without alterations in
+  distortion, and there are no discontinuities anywhere in the footprint
+  at any time of year.
+\end{itemize}
+
+Both plots show the footprints of camera pointing taken up to the time
+set by the MJD slider, with the most recent three pointings outlined in
+cyan. The fill colors are set to blue, green, red, brown, purple, and black for u, g, r, i, z, and y bands, respectively.
+
+Both plots have the following additional annotations:
+
+\begin{itemize}
+\item
+  The gray background shows the planned final depth of the LSST survey.
+\item
+  The orange disk shows the coordinates of the moon.
+\item
+  The yellow disk shows the coordinates of the sun.
+\item
+  The green line (oval) shows the ecliptic.
+\item
+  The blue line (oval) shows the plane of the Milky Way.
+\item
+  The black line shows the horizon at the time set by the MJD slider.
+\item
+  The red line shows a zenith distance of 70\degree (airmass=2.9) at the time
+  set by the MJD slider.
+\end{itemize}
+
+\end{figure}
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=0.7\linewidth]{altplot.png}
+    \caption{Visit altitude plot}
+    \label{fig:altplot}
+}
+    This plot shows the visit coordinate altitude (on left axis) or airmass (or right axis) vs. time over the course of a night. The color and marker shape indicate the \texttt{scheduler\_note} in the visit metadata, which indicates the scheduler ``survey'' in for visits scheduled by the feature-based scheduler (FBS). Lines between visits represent direct slews.
+\end{figure}
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=0.7\linewidth]{horizonplot.png}
+    \caption{Horizon coordinate map}
+    \label{fig:horizonplot}
+    }
+    This figure shows visit horizon coordinates (zenith distance/az) in a polar plot, with the angular dimension mapped to visit azimuth and the radial dimension mapped to zenith distance (90\degree - altitude). The color and marker shape indicate the \texttt{scheduler\_note} in the visit metadata, which indicates the scheduler ``survey'' in for visits scheduled by the feature-based scheduler (FBS).
+\end{figure}
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=0.7\linewidth]{value_timeline.png}
+    \caption{Vulue timeline}
+    \label{fig:valuetimelineplot}
+    }
+    This figure shows a plot of visit parameter value vs. time for a night.
+    The specific visit parameter to be plotted can be selected in the dropdown in the upper left.
+\end{figure}
+
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=0.7\linewidth]{surveyrewards.png}
+    \caption{Survey reward timelines}
+    \label{fig:surveyrewards}
+    }
+This plot represents the reward (or maximum value of the reward, if the
+reward is a \texttt{healpix} map rather than a scalar) for each survey with which
+the scheduler is configured, for each call to the scheduler used to
+schedule visits on this night.
+
+The horizontal axis shows the times the scheduler call requested an
+observation for (not the time at which the call to the scheduler was
+made). Each horizontal line shows a timeline of reward values for a
+given survey.
+
+\begin{itemize}
+\item
+  Red x's mark infeasible surveys, surveys that cannot be scheduled on
+  the requested time.
+\item
+  Gray triangles show rewards with an infinite positive value.
+\item
+  Colored vertical bars represent other values, with limits set by the
+  slider along the bottom of the plot. Both the height and color of the
+  bar are mapped to the value of the reward, and value can also be read
+  by hovering the mouse cursor over the bar.
+\item
+  Black vertical bars represent rewards that are above the specified
+  color/bar height limit set by the slider (but not infinite), while a
+  red vertical bars represent values below the requested range (but
+  still feasible).
+\end{itemize}
+
+\end{figure}
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=0.7\linewidth]{bfrewards.png}
+    \caption{Basis function rewards timelines}
+    \label{fig:bfrewards}
+}
+These timelines show the rewards (or maximum values of the
+rewards, if the rewards are \texttt{healpix} maps) for each basis function
+contribution to each survey.
+
+The horizontal axis shows the times the scheduler call requested an
+observation for (not the time at which the call to the scheduler was
+made). Each horizontal line shows a timeline of reward values for a
+given survey.
+
+\begin{itemize}
+\item
+  Red x's mark basis functions which mark a survey as infeasible, such
+  that the survey cannot be scheduled on the requested time.
+\item
+  Gray triangles show rewards with an infinite positive value.
+\item
+  Colored vertical bars represent other values, with limits set by the
+  slider along the bottom of the plot. Both the height and color of the
+  bar are mapped to the value of the reward, and value can also be read
+  by hovering the mouse cursor over the bar.
+\item
+  Black vertical bars represent rewards that are above the specified
+  color/bar height limit set by the slider (but not infinite), while a
+  red vertical bars represent values below the requested range (but
+  still feasible).
+\end{itemize} 
+
+Most scheduler instances are configured with too many basis functions to display in a single plot, when all basis functions for all surveys are considered at once.
+Therefore, this figure separates the different surveys by tier, and the basis functions for surveys in a given tier can be selected using the tabs at the top of the figure.
+
+\end{figure}
+
+\section{The multi-simulation pre-night briefing report} \label{sec:multiprenight}
+
+Any given single simulation for an upcoming night will not necessarily produce exactly the set of exposures the scheduler will request for a given night because the simulation will need to model or otherwise make assumptions about when the scheduler will be called and with what input. For example, even slight shifts in the start time can change which visits the scheduler selects, as can deviations from the model for overhead, weather conditions (like seeing or wind), and longer delays in observing (e.g. temporary closure due to poor weather). It is therefore useful to produce multiple simulations for any given night, each with slight (or large) deviations from nominal parameters.
+
+The process that generates simulations for the pre-night briefing therefore creates a small collection of simulations with deviations from nominal parameters. The multi-simulation pre-night briefing report provides a set of figures that compare the various simulations made for a single night.
+
+The multi-simulation pre-night briefing includes the following figures:
+\begin{itemize}
+    \item The table of astronomical almanac events for the subjects night (as found in the pre-night briefing) and shown in figure~\ref{fig:nightevents}. These events provide context for the rest of the night.
+    \item A plot of visit altitude vs. time, with visits from different simulations shown with different marker shapes and colors. Figure~\ref{fig:multisimaltvsnight} shows an example.
+    \item A table of ``often repeated fields'' for the night, where an ``often repeated field'' is a combination of band and coordinates (field R. A. and declination) with at least four visits in the night of observing. For each often repeated field, the table lists the number of times it was observed in each simulation, and the time window within which it was observed. This allows detailed comparison between simulations for the fields on which the simulations spend the most time. In production science observing, these will typically be deep drilling fields. (Such a table is impractical for fields with only a few visits, because on a typical night there will be too many such distinct visits.)
+    \item Distributions of other visit parameters, with the distributions in different simulations shown in different colors and fill patterns. The parameters for which distributions are shown are currently airmass, field R. A., and declination.
+    \item A collection of tables giving statistics on the numbers of visits each simulation has in common with each other simulation, where visits are considered ``in common'' if they have the same equatorial coordinates (Right Ascension and declination) and band.
+    \item A table of differences in timing between the nominal simulation and other simulations, for each visit (combination of R. A., declination, band, and repeat number) they have in common. 
+\end{itemize}
+
+Together, these figures show how stable the simulation for the night is with respect to expected variations in parameters like overhead and weather. and indicate what kinds of variations should be expected.
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=1\linewidth]{multiprenight_alt_vs_time.png}
+    \caption{Multi-simulation altitude vs. time plot}
+    \label{fig:multisimaltvsnight}
+}
+This figure plots the altitude vs. time for all visits in a collection of different simulations of the same night. Marker shape and color indicate which simulation any given visit is from.
+When multiple simulations are broadly similar, visiting mostly the same pointings at roughly the same time, points in different colors and shapes will mostly coincide: offsets and other large differences are an unambiguous indication of differences. When differences are slight offsets in time, they will show up in this plot as slight offsets between different groups of points.
+Note, however, that perfect coincidence in this plot is not a guarantee that the simulations are similar, because other visit parameters (band and R. A.) might be different.
+
+\end{figure}
+
+\section{The scheduler snapshot dashboard} \label{sec:snapdash}
+
+The scheduler snapshot dashboard is not generated from a Jupyter notebook, but rather a stand-alone web application currently hosted by the \texttt{phalanx} installation Rubin Observatory's U. S. Data Facility (USDF). This dashboard provides an interface through which users can load and explore snapshots of the state of the scheduler application used at the observatory. The structure of the dashboard interface maps directly to the nested collection of objects that constitute the  feature-based scheduler (\texttt{CoreScheduler}, tiers, surveys, and basis functions), as described in section~\ref{sec:scheduler}. The dashboard, shown in Figure~\ref{fig:snapdash}, has elements that let the user see global information (if any) about each level, and select which successive inner levels they want to see more details on:
+\begin{enumerate}
+    \item The ``scheduler snapshot date and time'' and ``telescope'' entry boxes in the upper left of the dashboard determine the list of scheduler snapshots shown in the ``scheduler snapshot file'' dropdown just below them.
+    \item Selection of a snapshot from the ``scheduler snapshot file'' dropdown sets the ``date and time'' and ``tier'' dropdown beneath it, and populates the rest of the dashboard with values for an initial tier and survey in that tier.
+    \item Selection of a ``tier'' in the tier dropdown updates the table in the top and center of the dashboard with a summary table with one row for each survey in the tier. This table lists the survey name and reward for each tier (if the survey is observable), a list of basis functions that cause the survey not to be observable (if it is not), and a link to documentation on the survey.
+    \item Selection of a survey from the list in the tier table updates the table in the lower left with the basis functions in that tier (if any).
+\end{enumerate}
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=1\linewidth]{snapdash.png}
+    \caption{Scheduler snapshot dashboard}
+    \label{fig:snapdash}
+}
+The scheduler snapshot dashboard is roughly divided into four sections:
+
+\begin{enumerate}
+    \item The upper left of the dashboard provides tools for selecting and loading a snapshot, setting the time at which surveys and basis functions are to be evaluated, and selecting which tier to show surveys from in the table of surveys.
+    \item The table of surveys lists the scheduler surveys in the selected tier, with a documentation link and the total reward for that tier at the time selected (if the survey is observable) or a list of basis functions that prevent the survey from being observable. Users select surveys for further exploration in the basis function table by selecting rows in this table of surveys.
+    \item A table of basis functions from the survey select in the table of surveys, with a documentation link and parameters of that basis function evaluated at the time selected.
+    \item A map of the total reward for a survey (selected in the survey table), the sky brightness at the selected time, or the value of a basis function (selected in the basis function table). A user selects which map is shown using a drop-down beneath the map.
+\end{enumerate}
+
+\end{figure}
+
+\section{The scheduler night summary} \label{sec:nightsum}
+
+The scheduler night summary is a report summarizing the visits observed on a night, together with information useful for assessing scheduler performance on that night. It is intended to be reviewed by observatory staff, the scheduler team, and anyone else who wishes to keep track of survey progress on a detailed level. The night report currently includes the following elements:
+\begin{itemize}
+    \item The free-text night report summarizing the night, as written by observatory staff on the night. \texttt{schedview/examples/nightreport.py} implements a minimal executable that writes this report to a file.
+    \item The same table of astronomical almanac events (sun and moon rise and set) that appears in the pre-night briefing is show here as well. Although these events are not affected by the survey scheduler, they provide context needed for interpreting filter and pointing choices as well as start and end times.
+    \item The table with statistics on shutter time, as found in the pre-night briefing, but reported for the completed night rather than for simulations.
+    \item A two-pane timeline and value plot. On the left pane, timelines of events that occurred during the night, organized vertically by the type of event. Hover text provides additional information on each event. For example, the hover-text for human-written log messages is the text of the message itself. Times for scheduler configuration, snapshot collection, events related to observing of blocks of visits, and astronomical events (twilight) are also shown. On the right pane, metadata on each visit is plotted against the time at which the visit was taken, color coded by band. The specific metadate plotted is selectable using a drop-down selector, and includes a wide variety of parameters, including coordinates, seeing, airmass, sky brightness, and depth. Figure~\ref{fig:timeline} shows an example of this figure, and \texttt{schedview/examples/timeline.py} shows a sample executable the drives the full workflow to produce a file with the figure.
+    \item Interactive sky maps showing the locations of the night's visits on the sky, similar to those found in the pre-night briefing but applied to completed rather than simulated visits.
+    \item A map of the visits completed on the night plotted over the accumulated depth of the survey so far, organized into subplots by band. Airmass limit lines for the start and and of the night indicate the limits of what could be observed on the night. Figure~\ref{fig:accumdepth} shows an example of such a plot, and \texttt{schedview/examples/accumdepth.py} shows a minimal workflow to produces such a plot in a file. This figure serves as an intuitive diagnostic of whether the scheduler observing pointings that will result in uniform coverage.
+    \item A map of the visits completed on the night plotted over the time since the last time that pointing in the sky was observed, organized into subplots by band. Airmass limit lines for the start and and of the night indicate the limits of what could be observed on the night. Figure~\ref{fig:agemap} shows an example of such a plot, and \texttt{schedview/examples/agemap.py} shows a minimal workflow to produces such a plot in a file. This figure serves as an intuitive diagnostic of how well the scheduler is maintaining an observing cadence, and in what regions of the sky.
+    \item A plot showing the recent depths and dates of sequences of visits on LSST deep drilling fields \todo{reference}. It consists of panes stacked vertically, one for each deep drilling field. Within each pane, vertical bars representing nights of observing are arranged along the horizontal axis. The height of each bar represents the depth (as on effective exposure time \todo{reference}) in each band accumulated on that night. Figure~\ref{fig:ddfcadence} shows an example of such a plot, and \texttt{schedview/examples/ddfcadence.py} shows a minimal workflow to produces such a plot in a file.
+    \item A histogram of overhead between successive visits. The global distribution gives a general idea of observing efficiency, while outliers mark delays in observing. Figure~\ref{fig:overheadhist} shows an example of this figure, and \texttt{schedview/examples/overheadhist.py} shows a minimal workflow to produce such a plot in a file.
+    \item A plot of overhead between successive visits against slew distance. This plot helps distinguish overhead from long slew times from other sources of delay. Figure~\ref{fig:overheadvsslew} shows an example of this figure, and \texttt{schedview/examples/overheadvsslew.py} shows a minimal workflow to produce such a plot in a file.
+    \item A table of the visits with the longest overhead, calling out specific visits that may require further examination. Figure~\ref{fig:overheadtable} shows an example table, and \texttt{schedview/examples/overheadtable.py} shows an example minimal workflow to produce the table in a file.
+\end{itemize}
+
+\begin{figure}
+\begin{lstlisting}[basicstyle=\tiny\ttfamily]
+## Sun and moon
+
+### Events
+
+| event           |     MJD |      LST | UTC                              | Chile/Continental                |
+|:----------------|--------:|---------:|:---------------------------------|:---------------------------------|
+| sunset          | 60599   | 296.622  | 2024-10-15 22:49:39.622000+00:00 | 2024-10-15 19:49:39.622000-03:00 |
+| sun_n12_setting | 60599   | 311.003  | 2024-10-15 23:47:01.622000+00:00 | 2024-10-15 20:47:01.622000-03:00 |
+| sun_n18_setting | 60599   | 318.425  | 2024-10-16 00:16:38.088000+00:00 | 2024-10-15 21:16:38.088000-03:00 |
+| sun_n18_rising  | 60599.4 |  84.6095 | 2024-10-16 08:39:59.691000+00:00 | 2024-10-16 05:39:59.691000-03:00 |
+| sun_n12_rising  | 60599.4 |  92.0296 | 2024-10-16 09:09:35.653000+00:00 | 2024-10-16 06:09:35.653000-03:00 |
+| sunrise         | 60599.4 | 106.404  | 2024-10-16 10:06:56.102000+00:00 | 2024-10-16 07:06:56.102000-03:00 |
+| moonrise        | 60599.9 | 290.08   | 2024-10-16 22:19:37.898000+00:00 | 2024-10-16 19:19:37.898000-03:00 |
+| moonset         | 60599.4 |  94.2073 | 2024-10-16 09:18:16.894000+00:00 | 2024-10-16 06:18:16.894000-03:00 |
+| night_middle    | 60599.2 |  21.5129 | 2024-10-16 04:28:17.862000+00:00 | 2024-10-16 01:28:17.862000-03:00 |
+
+Modified Julian Date (MJD) is in units of days (UTC). Local Sidereal Time (LST) is in units of degrees.
+
+### Positions at local solar midnight
+
+|      |        RA |      dec |      alt |      az |    phase |
+|:-----|----------:|---------:|---------:|--------:|---------:|
+| sun  | 201.396   | -8.98593 | -20.3427 | 114.304 | nan      |
+| moon |   5.68042 |  3.43755 |  10.4976 | 280.454 |  90.7931 |
+
+\end{lstlisting}
+    \caption{Sun and moon events and positions}
+
+A markdown report that combines multiple tables into a single ``figure,'' in this case a table of events and a table of sun and moon positions for the night.
+
+    \label{fig:sunmoon}
+\end{figure}
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=1\linewidth]{timeline.png}
+    \caption{Visit timeline and parameter time plot}
+    \label{fig:timeline}
+}
+This two-panel figure shows events as a function of time on the left panel, and visit parameters as function of time in the right.
+Selections are linked between the panels, such that ``zooming in'' on a given time range in one plot zooms in on the correspending time range in the other.
+The events shown in the timeline are gathered from the EFD, or calculated from models (in the case of the ``sun'' timeline, which indicates night, twilight, and day time). Hovering over points in the timeline plot brings of hover-text showing details on the event.
+The visit parameter plotted can be selected using a drop-down at the top of the right panel.
+
+\end{figure}
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=1\linewidth]{accumdepth.png}
+    \caption{Accumulated depth map}
+    \label{fig:accumdepth}
+}
+
+Each subplot represents the progress in the survey in a different
+filter at the start of a night, presented in a
+\href{https://en.wikipedia.org/wiki/Lambert_azimuthal_equal-area_projection}{Lambert
+Azimuthal Equal Area Projection}, centered at the south celestial pole.
+
+Annotations are similar to those of the ``Visit Map'' (Figure~\ref{fig:visitmap}):
+
+\begin{itemize}
+\item
+  Black outlines show the camera footprint of each exposure taken on
+  this night.
+\item
+  The blue backdrop represents the accumulated effective exposure time,
+  teff (as defined above) at the start of the night.
+\item
+  The orange disk shows the coordinates of the moon.
+\item
+  The yellow disk shows the coordinates of the sun.
+\item
+  The green line (oval) shows the ecliptic.
+\item
+  The blue line (oval) shows the plane of the Milky Way.
+\item
+  Broken red ovals show a zenith distance of 70\degree (airmass=2.9) at
+  morning and evening 12° twilight.
+
+  \begin{itemize}   
+  \item
+    The dashed portions of each red oval show the extent of what is
+    observable at all during the night.
+  \item
+    As time progress through the night, the ZD circle maintains its
+    shape, moving counter-clockwise around the pole over the course of
+    the night.
+  \end{itemize}
+\end{itemize}
+
+Over-plotted on the depth map are black outlines of visits taken on the night.
+The combination of the broken red ovals (which show the limits of what can be observed on the night) and the blue representation of the depth provide a rough indication of whether the scheduler is selecting visits that ``fill in'' shallow areas in survey depth.
+
+\end{figure}
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=1\linewidth]{agemap.png}
+    \caption{Age map}
+    \label{fig:agemap}
+}
+
+Each subplot represents the time since the most recent visits to each point in the sky, by filter, presented in a Lambert Azimuthal Equal Area Projection, centered at the south celestial pole.
+
+Parts of the sky visited most recently are dark blue, growing fainter and grayer for areas visited less recently. Regions not visited in the last 10 days are not colored.
+
+Other features and annotations are the same as those of the depth map (Figure~\ref{fig:accumdepth}).
+
+Over-plotted on the depth map are black outlines of visits taken on the night.
+The combination of the broken red ovals (which show the limits of what can be observed on the night) and the blue representation of the depth provide a rough indication of how well the scheduler was selecting visits to maintain an observing cadence.
+
+\end{figure}
+
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=1\linewidth]{ddfcadence.png}
+    \caption{Deep Drilling Filed (DDF) Cadence}
+    \label{fig:ddfcadence}
+}
+
+The Deep Drilling Field (DDF) cadence plot shows the accumulated depth of each deep drilling field on each night within a specified date window. Each horizontal pane shows data for a single DDF pointing, and the stacked colored boxes on each night the accumulated effective exposure time\footnote{The effective exposure time, $t_{\mbox{eff}}$, is a monotonic transformation of the depth, mapped such that the $t_{\mbox{eff}}$ of a properly weighted coadd of visits is the sum of the $t_{\mbox{eff}}$ of the contributing visits.} in a band. Box colors indicate band. This plot therefore represents the cadence at which objects in each DDF field have been sampled over the date window.
+    
+\end{figure}
+
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=0.5\linewidth]{overheadhist.png}
+    \caption{Overhead histogram}
+    \label{fig:overheadhist}
+}
+A simple histogram of the time between successive exposures, providing a rough indication of observing efficiency.
+\end{figure}
+
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=0.5\linewidth]{overeadvsslew.png}
+    \caption{Overhead vs. slew angle}
+    \label{fig:overheadvsslew}
+}
+
+Slew time between visits can be a significant source of overhead between exposure. This plot of overhead time against slew distance can therefore be used to diagnose the degree to which overhead from long slews is contributing to the overall overhead.
+
+\end{figure}
+
+
+\begin{figure}
+\begin{lstlisting}[basicstyle=\tiny\ttfamily]
+|   observationId | observationStartDatetime64    |   overhead |   slewDistance | filter   | previous_filter   |
+|----------------:|:------------------------------|-----------:|---------------:|:---------|:------------------|
+|          356905 | 2026-12-02 00:49:37.617230359 |    73.4231 |       60.4914  | r        | r                 |
+|          356911 | 2026-12-02 00:54:20.066731833 |    30.457  |       10.1383  | r        | r                 |
+|          356917 | 2026-12-02 00:59:43.550488832 |    69.5263 |       35.0262  | r        | r                 |
+|          356927 | 2026-12-02 01:07:07.113648830 |    59.5263 |       53.5505  | r        | r                 |
+|          356933 | 2026-12-02 01:11:46.290263962 |    59.3324 |        3.12188 | r        | r                 |
+|          356982 | 2026-12-02 01:44:54.960950478 |   124.4    |        3.12905 | g        | r                 |
+|          357037 | 2026-12-02 02:21:13.039123393 |    82.2372 |       49.6632  | g        | g                 |
+|          357047 | 2026-12-02 02:29:10.639125402 |   124.4    |        0       | i        | g                 |
+|          357067 | 2026-12-02 02:43:09.821883151 |   124.4    |        0       | r        | i                 |
+|          357087 | 2026-12-02 02:57:08.914828599 |   124.4    |        0       | y        | r                 |
+|          357105 | 2026-12-02 03:09:55.862114523 |   124.4    |        0       | z        | y                 |
+|          357129 | 2026-12-02 03:26:20.005617253 |   124.4    |       15.5191  | g        | z                 |
+|          357180 | 2026-12-02 04:01:17.176599135 |   124.4    |        2.98854 | r        | g                 |
+|          357231 | 2026-12-02 04:36:30.300659090 |   160.4    |       48.6778  | g        | r                 |
+|          357233 | 2026-12-02 04:39:37.648612554 |   119.351  |       20.7539  | g        | g                 |
+|          357298 | 2026-12-02 05:24:32.236456233 |   124.4    |        2.94632 | r        | g                 |
+|          357349 | 2026-12-02 05:59:27.950974731 |   124.4    |       28.9333  | g        | r                 |
+|          357350 | 2026-12-02 06:00:37.345355423 |    40.1944 |       15.165   | g        | g                 |
+|          357354 | 2026-12-02 06:03:46.967209624 |    44.5285 |       17.0777  | g        | g                 |
+|          357372 | 2026-12-02 06:16:46.010925863 |    49.8681 |       19.0772  | g        | g                 |
+|          357423 | 2026-12-02 06:51:46.477303267 |   124.4    |        2.93214 | r        | g                 |
+|          357474 | 2026-12-02 07:26:37.706674598 |   124.4    |       14.2406  | g        | r                 |
+|          357490 | 2026-12-02 07:39:16.838732469 |   124.4    |       38.1929  | r        | g                 |
+|          357523 | 2026-12-02 08:02:49.012912433 |    51.0817 |       12.6134  | r        | r                 |
+|          357526 | 2026-12-02 08:05:58.546993649 |    82.6972 |       25.9667  | r        | r                 |
+|          357531 | 2026-12-02 08:11:29.984952123 |   140.924  |       89.041   | r        | r                 |
+|          357583 | 2026-12-02 08:30:30.697203660 |    82.4058 |       51.8761  | r        | r                 |
+\end{lstlisting}
+    \caption{Table of long overheads between visits for a night.}
+    \label{fig:overheadtable}
+
+A table of visits with long overheads that identifies the specific observation IDs and start times of observations provides a starting point for diagnosis of outliers.
+\end{figure}
+
+\section{Progress reports}
+
+In addition to the reports before, during, and after each night of observing, \texttt{schedview} will be used to produce figures for periodic reports on the progress of the survey. The figures for such reports can be produced by the same workflow (collect, compute, plot, reports) as the others.
+
+High-level reports such as those that need to be presented to upper management, the scientific collaborations, and funding agencies will be written by humans, rather than generated with automatically executed reports and dashboards. However, these reports will require an assortment of figures, and the \schedview package will host reusable code that generates such figures, particularly code that can be reused and refined over time for successive reports.
+
+Survey progress reports will require many of the same kinds of figures already produced by MAF for assessment of survey strategy simulations. In some cases, figures for progress reports may be generated using MAF utilities directly, and \schedview may not be involved. In others cases, \schedview will provide additional functionality. \schedview currently includes infrastructure for incorporating MAF tools into its own workflow and reporting, allowing the integration of functionality between \schedview and MAF: the \texttt{schedview.compute.maf} submodule uses arbitrary MAF slicers and metrics to perform the ``compute'' stage of the \schedview workflow, and MAF's plotting and plot handling functionality can typically be used directly as the ``plot'' stage. It is also possible to mix-and-match implementations in the MAF and \schedview infrastructure, and indeed this is what is done in the depth and age plots shown in figures~\ref{fig:accumdepth} and~\ref{fig:agemap}: \schedview calls MAF functions to compute the depth or age over the sky, and then uses its own plotting tools to generate the figure itself.
+
+Another example of a MAF plot that will be useful in progress reports are hourglass plots, as show in Figure~\ref{fig:hourglass}. Hourglass plots are particularly useful for progress reporting because they show data that varies on a visit-scale timescale over longer time periods (up to a year for a singly reasonably sized figure) and its astronomical context (time of year and night, time relative to sun and moon rise and set).
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=1.0\linewidth]{hourglass.png}
+    \caption{An example hourglass plot}
+    \label{fig:hourglass}
+}
+An hourglass plot provides a compact way to represent a lot of data for an extended date range. Each small horizontal bar represents a timeline for a single night of observing, with the color representing whatever quantity is being plotted. Gray shading represents twilight and end of night time.\footnote{It is called an ``hourglass plot'' because, when plotted entirely vertically with the winter solstice at the top and bottom of the plot, the shading indicating the duration of the night has the shape of an hourglass.} Points at which the yellow dotted lines pass through the timelines for each night indicate moonrise and moon set, and the thick yellow line crosses at the time the moon transits.
+
+So, in the above example, one can see that the scheduler is choosing to observe in IR bands when the moon is up, and u, g, or r when the moon is down, which is an appropriate select to minimize the loss of depth due to sky brightness from scattered moonlight. Extended downtime can also clearly be seen where the black background is visible, and the timing of this downtime relative to moon conditions is also clear.
+
+\end{figure}
+
+\section{Conclusion}
+
+The \schedview python module provides a collection point for tools that create visualizations, reports, and dashboards to monitor Rubin Observatory observation scheduling and strategy. The standardized architecture decomposes the workflow into collection, computation, plotting, and report generation phases, allowing reuse of computing code across different environments and access mechanisms: the same computation code can be used with a variety of data sources, the same plotting code can be used with different computation or reporting tools, etc. This architecture there supports the re-use of code for different audiences and use cases, including observatory staff during observing, the scheduling team monitoring scheduler activity for indications of problems or assessment of progress, and management in the creation of reports for the project, science working group, external scientists, and others outside the project.
+
+Significant progress has been made toward a collection of tools that will support observing allowing a variety of users to prepare for observing, monitor the scheduler during observing, and assess its performance after each night is complete.  The development of functionality and infrastructure to support long-term monitoring of survey progress has begun, but further work is needed before an initial set of interfaces for progress monitoring is available.
 
 
 
