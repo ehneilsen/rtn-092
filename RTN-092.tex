@@ -2,6 +2,7 @@
 \usepackage[nomarkers,nolists,figuresonly]{endfloat}
 \usepackage{adjustbox}
 \usepackage{gensymb}
+\usepackage{caption}
 \input{meta}
 
 % Package imports go here.
@@ -261,14 +262,13 @@ def make_gaps(
         An html fragment with a definition list of the gaps between visits.
     """
 \end{lstlisting}
-\label{fig:gapscode}
-\caption{Sample command-line \schedview application}
-A sample command-line application showing the construction of a 
-report (in this case a simple html file) following the \texttt{schedview} workflow. (start)
+(continued on next page)
 \end{figure}
 
 \begin{figure}[htbp]
-\ContinuedFloat                     % ← keeps the same figure number
+\ContinuedFloat
+
+(continued from previous page)
 \begin{lstlisting}[language=python]
     # Parameters
     day_obs: DayObs = DayObs.from_date(iso_date)
@@ -299,7 +299,10 @@ report (in this case a simple html file) following the \texttt{schedview} workfl
     return result
 
 \end{lstlisting}
-(continued)
+\caption{Sample command-line \schedview application}
+\label{fig:gapscode}
+A sample command-line application showing the construction of a 
+report (in this case a simple html file) following the \texttt{schedview} workflow. (start)
 \end{figure}
 
 
