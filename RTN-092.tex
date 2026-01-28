@@ -69,7 +69,7 @@ Many people working on Rubin Observatory and the LSST require tools to help them
     \item During the night, the observing staff may want to update the predictions of scheduler behavior over the short term, from a few hours to the remainder of the night. This will help them understand the impact of unexpected events not accounted for by the pre-night briefing (e.g., engineering tests, down time due to weather, and instrument problems).
     \item After each night, both observatory staff and the scheduling team will need to understand what was observed and assess scheduler performance for the night.
     \item Observatory staff, the scheduling team, and project management will need to periodically assess and report survey progress to science stakeholders, both within and outside the project. Tools and visualizations for assessment and communication of progress will need to be available for a variety of users and audiences.
-    \item Rubin Observatory Science Collaborations will need to monitor progress to plan scientific analysis and provide feedback to the Rubin Observatory Survey Cadence Optimization Committee (SCOC) so it can be fed back into plans for updating Rubin Observory scheduling.
+    \item Rubin Observatory Science Collaborations will need to monitor progress to plan scientific analysis and provide feedback to the Rubin Observatory Survey Cadence Optimization Committee (SCOC) so it can be fed back into plans for updating Rubin Observatory scheduling.
 \end{itemize}
 Tools for examination of scheduler behavior and survey progress therefore need to support users with a variety of levels of expertise on the scheduler, from novice to expert. The tools need to be suitable for analysis on a variety of time-scales, and will need to be run using data accessible from different sites with clients run at different sites.
 
@@ -77,7 +77,7 @@ Tools for examination of scheduler behavior and survey progress therefore need t
 
 \section{The Rubin Observatory scheduler} \label{sec:scheduler}
 
-The ``feature-based scheduler'' (FBS), implemented in the \texttt{rubin\_scheduler} python package, implements the algorithm that selects visits for science operations. The \texttt{CoreScheduler} class provides the primary API for interactions with the summit observatory software, including methods to request potential target observations and record acquired visits. An instance of the \texttt{CoreScheduler} has a collection of ``surveys'' organized into ``tiers'' reflecting the priority these surveys have. Figure~\ref{fig:schedclass} shows instance diagram of an example instance of a \texttt{CoreScheduler}. The example is much simpler than realistic examples, but is complex enough to show the fundamental features of the architure.
+The ``feature-based scheduler'' (FBS), implemented in the \texttt{rubin\_scheduler} python package, implements the algorithm that selects visits for science operations. The \texttt{CoreScheduler} class provides the primary API for interactions with the summit observatory software, including methods to request potential target observations and record acquired visits. An instance of the \texttt{CoreScheduler} has a collection of ``surveys'' organized into ``tiers'' reflecting the priority these surveys have. Figure~\ref{fig:schedclass} shows the instance diagram of an example instance of a \texttt{CoreScheduler}. The example is much simpler than realistic examples, but is complex enough to show the fundamental features of the architecture.
 
 
 \begin{figure}
@@ -308,10 +308,10 @@ Simple command line tools such as that used in the above example are currently o
 \begin{itemize}
     \item Times Square parameterized Jupyter notebooks provide a straightforward, easy to develop way to turn development and experimental notebooks into automatically generated reports that can be used by the collaboration. When a user loads the Times Square URL for the report in a browser, Times Square uses the jupyter environment on the Rubin Observatory USDF RSP to execute the notebook, and the result is shown to the user. If the same notebook has previously been executed on Times Square with the same parameters, the result of the previous execution loaded from a cache and displayed instead. Times Square notebooks are flexible but limited, because the processes that generate the reports dynamically only support notebooks that can be computed in short periods of time.
     \item The \texttt{nbconvert} utility can also transform Jupyter notebooks into web pages. An automated process executes \texttt{nbconvert} on Jupyter notebooks that provide pre-night briefing reports and nigth summaries, and posts the results as static web pages on an \texttt{ngnix} web server. Because dynamic elements in many of \texttt{schedview}`s figures are implemented in \texttt{javascript} in the client browser, many of the dynamic elements can be supported by this method even though there is no "back end" to serve new results or create new plots. However, not all possible functionality can be supported in this way.
-    \item Web application frameworks can be used to drive the necessary calls to \texttt{schedview} functions and create a full, interactive dashboard web applications. For example, the \texttt{schedlure_dashboard} tool is \texttt{phalanx} application implemented by combining calls to \texttt{schedview} tools using the \texttt{panel} dashboard library.
+    \item Web application frameworks can be used to drive the necessary calls to \texttt{schedview} functions and create a full, interactive dashboard web applications. For example, the \texttt{scheduler_dashboard} tool is \texttt{phalanx} application implemented by combining calls to \texttt{schedview} tools using the \texttt{panel} dashboard library.
 \end{itemize}
 
-The separation of the visualization generation from report compilation in \texttt{schedview}'s architecture should make it straightforward to include its visualizations in reports generated by other python tools as well.
+The separation of the visualization generation code and process from report compilation code and process in \texttt{schedview}'s architecture should make it straightforward to include its visualizations in reports generated by other python tools as well.
 
 \section{The pre-night briefing report} \label{sec:prenight}
 
@@ -622,11 +622,15 @@ The scheduler night summary is a report summarizing the visits observed on a nig
     \item The table with statistics on shutter time, as found in the pre-night briefing, but reported for the completed night rather than for simulations.
     \item A two-pane timeline and value plot. On the left pane, timelines of events that occurred during the night, organized vertically by the type of event. Hover text provides additional information on each event. For example, the hover-text for human-written log messages is the text of the message itself. Times for scheduler configuration, snapshot collection, events related to observing of blocks of visits, and astronomical events (twilight) are also shown. On the right pane, metadata on each visit is plotted against the time at which the visit was taken, color coded by band. The specific metadate plotted is selectable using a drop-down selector, and includes a wide variety of parameters, including coordinates, seeing, airmass, sky brightness, and depth. Figure~\ref{fig:timeline} shows an example of this figure, and \texttt{schedview/examples/timeline.py} shows a sample executable the drives the full workflow to produce a file with the figure.
     \item Interactive sky maps showing the locations of the night's visits on the sky, similar to those found in the pre-night briefing but applied to completed rather than simulated visits.
-    \item A map of the visits completed on the night plotted over the accumulated depth of the survey so far, organized into subplots by band. Airmass limit lines for the start and and of the night indicate the limits of what could be observed on the night. Figure~\ref{fig:accumdepth} shows an example of such a plot, and \texttt{schedview/examples/accumdepth.py} shows a minimal workflow to produces such a plot in a file. This figure serves as an intuitive diagnostic of whether the scheduler observing pointings that will result in uniform coverage.
-    \item A map of the visits completed on the night plotted over the time since the last time that pointing in the sky was observed, organized into subplots by band. Airmass limit lines for the start and and of the night indicate the limits of what could be observed on the night. Figure~\ref{fig:agemap} shows an example of such a plot, and \texttt{schedview/examples/agemap.py} shows a minimal workflow to produces such a plot in a file. This figure serves as an intuitive diagnostic of how well the scheduler is maintaining an observing cadence, and in what regions of the sky.
-    \item A plot showing the recent depths and dates of sequences of visits on LSST deep drilling fields \todo{reference}. It consists of panes stacked vertically, one for each deep drilling field. Within each pane, vertical bars representing nights of observing are arranged along the horizontal axis. The height of each bar represents the depth (as on effective exposure time \todo{reference}) in each band accumulated on that night. Figure~\ref{fig:ddfcadence} shows an example of such a plot, and \texttt{schedview/examples/ddfcadence.py} shows a minimal workflow to produces such a plot in a file.
+    \item A map of the visits of the visits on the sky, colored according to how many visits were observed in each healpixel on the night. Figure~\ref{fig:nightnumvisits} shows an example of such a plot.
+    \item A map of the number of bands in which each healpixel on the sky was observed on the night.
+    igure~\ref{fig:nightnumbands} shows an example of such a plot.
+    \item A map of the photometric depth accumulated on the night in each band by healpixel, as measured by accumulated inverse variance ($t_{\textrm{eff}}$.
+    Figure~\ref{fig:nightteffmap} shows an example of such a plot.
+    \item A map of the number of bands completed twice on the night.
+    \item A plot showing the recent depths and dates of sequences of visits on LSST deep drilling fields. It consists of panes stacked vertically, one for each deep drilling field. Within each pane, vertical bars representing nights of observing are arranged along the horizontal axis. The height of each bar represents the depth (as effective exposure time) in each band accumulated on that night. Figure~\ref{fig:ddfcadence} shows an example of such a plot, and \texttt{schedview/examples/ddfcadence.py} shows a minimal workflow to produces such a plot in a file.
     \item A histogram of overhead between successive visits. The global distribution gives a general idea of observing efficiency, while outliers mark delays in observing. Figure~\ref{fig:overheadhist} shows an example of this figure, and \texttt{schedview/examples/overheadhist.py} shows a minimal workflow to produce such a plot in a file.
-    \item A plot of overhead between successive visits against slew distance. This plot helps distinguish overhead from long slew times from other sources of delay. Figure~\ref{fig:overheadvsslew} shows an example of this figure, and \texttt{schedview/examples/overheadvsslew.py} shows a minimal workflow to produce such a plot in a file.
+    \item A plot of overhead between successive visits against slew distance. This plot helps to distinguish overhead from long slew times from other sources of delay. Figure~\ref{fig:overheadvsslew} shows an example of this figure, and \texttt{schedview/examples/overheadvsslew.py} shows a minimal workflow to produce such a plot in a file.
     \item A table of the visits with the longest overhead, calling out specific visits that may require further examination. Figure~\ref{fig:overheadtable} shows an example table, and \texttt{schedview/examples/overheadtable.py} shows an example minimal workflow to produce the table in a file.
 \end{itemize}
 
@@ -682,72 +686,41 @@ The visit parameter plotted can be selected using a drop-down at the top of the 
 \begin{figure}
 {
     \centering
-    \includegraphics[width=1\linewidth]{accumdepth.png}
-    \caption{Accumulated depth map}
-    \label{fig:accumdepth}
+    \includegraphics[width=1\linewidth]{night_num_visits_map.png}
+    \caption{Map of number of visits on a night}
+    \label{fig:nightnumvisits}
 }
-
-Each subplot represents the progress in the survey in a different
-filter at the start of a night, presented in a
-\href{https://en.wikipedia.org/wiki/Lambert_azimuthal_equal-area_projection}{Lambert
-Azimuthal Equal Area Projection}, centered at the south celestial pole.
-
-Annotations are similar to those of the ``Visit Map'' (Figure~\ref{fig:visitmap}):
-
-\begin{itemize}
-\item
-  Black outlines show the camera footprint of each exposure taken on
-  this night.
-\item
-  The blue backdrop represents the accumulated effective exposure time,
-  teff (as defined above) at the start of the night.
-\item
-  The orange disk shows the coordinates of the moon.
-\item
-  The yellow disk shows the coordinates of the sun.
-\item
-  The green line (oval) shows the ecliptic.
-\item
-  The blue line (oval) shows the plane of the Milky Way.
-\item
-  Broken red ovals show a zenith distance of 70\degree (airmass=2.9) at
-  morning and evening 12° twilight.
-
-  \begin{itemize}   
-  \item
-    The dashed portions of each red oval show the extent of what is
-    observable at all during the night.
-  \item
-    As time progress through the night, the ZD circle maintains its
-    shape, moving counter-clockwise around the pole over the course of
-    the night.
-  \end{itemize}
-\end{itemize}
-
-Over-plotted on the depth map are black outlines of visits taken on the night.
-The combination of the broken red ovals (which show the limits of what can be observed on the night) and the blue representation of the depth provide a rough indication of whether the scheduler is selecting visits that ``fill in'' shallow areas in survey depth.
-
+This figure shows a map of the number of visits taken on the sky in each of two projections: a Lambert Azimuthal Equal Area projection (on the left) and a McBryde projection (right).
+The blue line shows the galactic plane, and the green the ecliptic.
+Orange and brown circles show the positions of the moon and sun, respectively.
 \end{figure}
 
 \begin{figure}
 {
     \centering
-    \includegraphics[width=1\linewidth]{agemap.png}
-    \caption{Age map}
-    \label{fig:agemap}
+    \includegraphics[width=1\linewidth]{night_num_bands_map.png}
+    \caption{Map of number of bands by position on a night}
+    \label{fig:nightnumbands}
 }
-
-Each subplot represents the time since the most recent visits to each point in the sky, by filter, presented in a Lambert Azimuthal Equal Area Projection, centered at the south celestial pole.
-
-Parts of the sky visited most recently are dark blue, growing fainter and grayer for areas visited less recently. Regions not visited in the last 10 days are not colored.
-
-Other features and annotations are the same as those of the depth map (Figure~\ref{fig:accumdepth}).
-
-Over-plotted on the depth map are black outlines of visits taken on the night.
-The combination of the broken red ovals (which show the limits of what can be observed on the night) and the blue representation of the depth provide a rough indication of how well the scheduler was selecting visits to maintain an observing cadence.
-
+This figure shows a map of the number of bands in which there were visits taken on the sky in each of two projections: a Lambert Azimuthal Equal Area projection (on the left) and a McBryde projection (right).
+The blue line shows the galactic plane, and the green the ecliptic.
+Orange and brown circles show the positions of the moon and sun, respectively.
 \end{figure}
 
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=1\linewidth]{night_teff_map.png}
+    \caption{Map of number of visits on a night}
+    \label{fig:nightteffmap}
+}
+This figure shows a map of the depth reached on the night, in two projections: a Lambert Azimuthal Equal Areo projection (on the left) and a McBryde projection (right).
+"Depth" here is measured in accumulated inverse variance, scaled to correspond roughly to the exposure time it would take to reach that inverse variance under a set of reference conditions ($t_{eff}$).
+Maps for each band are show in collapsible sections.
+The blue line shows the galactic plane, and the green the ecliptic.
+Orange and brown circles show the positions of the moon and sun, respectively.
+\end{figure}
 
 \begin{figure}
 {
@@ -828,11 +801,50 @@ A table of visits with long overheads that identifies the specific observation I
 
 In addition to the reports before, during, and after each night of observing, \texttt{schedview} will be used to produce figures for periodic reports on the progress of the survey. The figures for such reports can be produced by the same workflow (collect, compute, plot, reports) as the others.
 
-High-level reports such as those that need to be presented to upper management, the scientific collaborations, and funding agencies will be written by humans, rather than generated with automatically executed reports and dashboards. However, these reports will require an assortment of figures, and the \schedview package will host reusable code that generates such figures, particularly code that can be reused and refined over time for successive reports.
+Progress reporting has many audiences with different backgrounds and requirements, and some audiences will have different requirements on different timescales.
 
-Survey progress reports will require many of the same kinds of figures already produced by MAF for assessment of survey strategy simulations. In some cases, figures for progress reports may be generated using MAF utilities directly, and \schedview may not be involved. In others cases, \schedview will provide additional functionality. \schedview currently includes infrastructure for incorporating MAF tools into its own workflow and reporting, allowing the integration of functionality between \schedview and MAF: the \texttt{schedview.compute.maf} submodule uses arbitrary MAF slicers and metrics to perform the ``compute'' stage of the \schedview workflow, and MAF's plotting and plot handling functionality can typically be used directly as the ``plot'' stage. It is also possible to mix-and-match implementations in the MAF and \schedview infrastructure, and indeed this is what is done in the depth and age plots shown in figures~\ref{fig:accumdepth} and~\ref{fig:agemap}: \schedview calls MAF functions to compute the depth or age over the sky, and then uses its own plotting tools to generate the figure itself.
+\begin{description}
+    \item[Survey Strategy] The Rubin Observatory survey strategy team requires progress reports and visualizations to monitor the scheduler for problems catch potential issues early.
+    \item[SCOC] The Rubin Observatory Survey Cadence Optimization Committee (SCOC) is charged with providing feedback and making recommendations from the science collaborations to the Rubin Observatory director on issues related to survey strategy.
+    \item[Management] The Rubin Observatory director and other high level management needs tools to provide a high-level view of survey status, and generate material for reports.
+    \item[Project] The progress of the survey is also of interest to members of the Rubin Observatory project as a whole. Progress updates will probably be included it presentations at project meetings, and presenters will need sources of suitable visualizations. Additional tools or reports that provide visualizations suitable for this audience will also be welcome.
+    \item[Science Collaborations] Members of the science collaborations will also need updates. Such updates will not only be needed for providing feedback to the project through the SCOC representatives, but also for planning for projects and data analysis. Different science collaborations are likely to have different needs: each science collaboration provided different sets of metrics in the planning stages for the scheduler, and many of these metrics are only of interest to a limited set of scientists. In other cases, common plots may be costomized for the needs of different science uses.
+    \item[Funding agencies] Project authors will need sources of information including figures and statistics from which to draw in composing reports to the funding agencies.
+    \item[Public Outreach]
+\end{description}
 
-Another example of a MAF plot that will be useful in progress reports are hourglass plots, as show in Figure~\ref{fig:hourglass}. Hourglass plots are particularly useful for progress reporting because they show data that varies on a visit-scale timescale over longer time periods (up to a year for a singly reasonably sized figure) and its astronomical context (time of year and night, time relative to sun and moon rise and set).
+Most visualizations will understandable or of interest to only some audiences, and in cases where the same visualization is broadly interesting, there will be benefit to tailoring details of the presentation to different audiences or for different uses.
+
+Survey progress reports will require many of the same kinds of figures already produced by MAF for assessment of survey strategy simulations. In some cases, figures for progress reports may be generated using MAF utilities directly, and \schedview need not be involved at all. In other cases, \schedview can provide additional functionality. \schedview currently includes infrastructure for incorporating MAF tools into its own workflow and reporting, allowing the integration of functionality between \schedview and MAF: the \texttt{schedview.compute.maf} submodule uses arbitrary MAF slicers and metrics to perform the ``compute'' stage of the \schedview workflow, and MAF's plotting and plot handling functionality can typically be used directly as the ``plot'' stage. It is also possible to mix-and-match implementations in the MAF and \schedview infrastructure: \schedview calls MAF functions to compute a metric over a healpix map of the sky, and then uses its own plotting tools to generate the figure itself.
+
+Some examples of progress plots to be implemented in \schedview include:
+
+\begin{description}
+    \item[Sky maps] of any spatial (healpix) metric produced by MAF. Figure~\ref{fig:accumvisitsmap} uses the accumulated number of visits as of a given night as an example. It shows different bands in collapsible sections, only one of which is unfolded in the figure. Specialized maps could be made for pre-defined regions of the sky (e.g. the Milky Way, the ecliptic, or the Virgo cluster). Maps may either be static, representing a metric's value at the current time, or be movies showing how the value of the metric changes over time.
+    \item[Hourglass plots] that show a value as a function of time over the course of a whole year: nights are represented as horizontal bars, times as the horizontal position along each row, and values are encoded as color at the horizontal position in the bar for its night. Figure~\ref{fig:hourglass} shows one such example, where each color represents a different kind of science observing. Any value of interest that varies with time might be usefully displayed like this. A few examples include depth, extinction due to clouds, seeing, Hour Angle of the current pointing, and reasons for downtime.
+    \item[Cadence plots] that represent dates along a horizontal axis and show a metric (e.g. depth) for the visits taken on a date at corresponding points along that axis. Figure~\ref{fig:ddfcadence} shows the example of the depth of DDF fields, but similar plot could be made for any scalar metric for any pointing, or even for specified regions on which the scalar metric can be measured.
+    \item[Scalar metric vs. time plots] that show the instantaneous values of a scalar metric as a function of date for dates up to and including the current date. Such plots are most appropriate for metrics whose values change gradually with time, such as depth or accumulated numbers of visits. The left panel of Figure~\ref{fig:mediang} shows an example of such a plot, showing the increase in depth in g band as a function of date.
+    \item[Extrapolated metric vs. time plots] that show how the simulated value as of a given time (e.g. the end of the survey, or the cutoff date for inclusion in a data release) changes as nights of simulated visits are replaced by nights of completed visits. For example, if such a plot is made for the DR1 data release, the value at 2026-11-01 would include actual visits from the start of the survey through 2026-11-01 and simulated visits for dates between 2026-11-01 and the cutoff date for inclusion in DR1. Such plots will be more informative than simple plots of metric value vs. time for metrics that do not change gradually. For example, the left panel of Figure~\ref{fig:foarea} shows the increase in the fOArea metric (the area of the footprint over which the survey has accumulated more than a given depth) with time. Because accumulated visits are spread across the footprint, the value of FOArea metric remains near zero for an extended period of time even though significant progress is being made. By measuring the metric in a set of visit that combines completed and simulated visits, the effect of the current progress on the likely final value of the metric can be estimated: if the extrapolated value rises or falls with time, the actual survey is getting ahead or behind the baseline, respectively.
+    There are two varieties of this plot that can be made:
+    \begin{itemize}
+        \item Chimera visit sequences simply paste the baseline set visits for dates later than a data point after the actual set of visits accumulated up to that date. These combined sets of visits are easy to make, but do not take into account changes in scheduler behavior in response to the state of the survey at each time, and will therefore be somewhat pessimistic. For example, a period of poor weather may result in a shallow area in the footprint as of a given date, and the actual scheduler will try to ``fill in'' this area, but this will not be reflected in a chimera visit sequence.
+        \item Bespoke visit sequences run measure metrics on sequences of visits made by running custom simulations starting at the dates for each data point, pre-loaded with completed visits as of the corresponding date. Such visualizations will be more accurate, but require significantly more time and computing resources to produce.
+    \end{itemize}
+    The right panels of Figures~\ref{fig:mediang}~and~\ref{fig:foarea} shows examples of plots of extrapolated metric vs. time.
+\end{description}
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=1\linewidth]{accum_visits_map.png}
+    \caption{Map of number number of visits accumulated as a given night.}
+    \label{fig:accumvisitsmap}
+}
+This figure shows a map of the number of visit accumulated as of a given night, in two projections: a Lambert Azimuthal Equal Area projection (on the left) and a McBryde projection (right).
+Maps for each band are show in collapsible sections.
+The blue line shows the galactic plane, and the green the ecliptic.
+Orange and brown circles show the positions of the moon and sun, respectively.
+\end{figure}
 
 \begin{figure}
 {
@@ -844,7 +856,34 @@ Another example of a MAF plot that will be useful in progress reports are hourgl
 An hourglass plot provides a compact way to represent a lot of data for an extended date range. Each small horizontal bar represents a timeline for a single night of observing, with the color representing whatever quantity is being plotted. Gray shading represents twilight and end of night time.\footnote{It is called an ``hourglass plot'' because, when plotted entirely vertically with the winter solstice at the top and bottom of the plot, the shading indicating the duration of the night has the shape of an hourglass.} Points at which the yellow dotted lines pass through the timelines for each night indicate moonrise and moon set, and the thick yellow line crosses at the time the moon transits.
 
 So, in the above example, one can see that the scheduler is choosing to observe in IR bands when the moon is up, and u, g, or r when the moon is down, which is an appropriate select to minimize the loss of depth due to sky brightness from scattered moonlight. Extended downtime can also clearly be seen where the black background is visible, and the timing of this downtime relative to moon conditions is also clear.
+\end{figure}
 
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=1.0\linewidth]{median_g.png}
+    \caption{Median depth in g band as a function of date}
+    \label{fig:mediang}
+}
+In the left-hand plot above, the points and black line show the metric values at each point in time, as measured only from visits at or before that time. The green line shows the same metric values measured at these times in the baseline simulation. This kind of a plot is suitable for metric values that inclease steadily over time.
+
+In these plots, the right-hand plot shows the final g band depth, extrapolated from the date to the end using the baseline simulation.
+\end{figure}
+
+\begin{figure}
+{
+    \centering
+    \includegraphics[width=1.0\linewidth]{FOArea.png}
+    \caption{Total area over which the survey has collected more than 750 visits, as a function of date.}
+    \label{fig:foarea}
+}
+For some metrics, the current value does not provide a good indication of progress on that metric. For example, the value of fOArea metric (the total area that has reached a given depth) might not change much even when significant progress is being made if the progress is spread out evenly over the whole footprint.
+
+For these metrics, the plot on the right, which shows the value extrapolated to the end of the survey, is more useful.
+
+This value will be pessimistic, because it does not account for any response the scheduler might make to the difference in completed vs. baseline visits. A different approach is to create bespoke simulations from each date, starting the scheduler simulator with the completed visits pre-loaded and simulating to the end of the survey. The general appearance of the figure would remain much the same, however.
+
+In these plots, the black line and points show the metric values measured from the chimera simulations, while the green is the value from the baseline.
 \end{figure}
 
 \section{Conclusion}
